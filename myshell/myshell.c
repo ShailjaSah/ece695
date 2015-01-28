@@ -64,6 +64,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 {
 	pid_t pid = -1;		// process ID for child
 	int pipefd[2];		// file descriptors for this process's pipe
+	int status;
 
 	/* EXERCISE: Complete this function!
 	 * We've written some of the skeleton for you, but feel free to
@@ -105,6 +106,20 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	//       c. "exit".
 	//       d. "cd".
 	//
+	if ((pid = fork()) < 0) {
+		perror("fork error");
+	}
+	// child process
+	else if (pid == 0) {
+		execvp(cmd->argv[0], cmd->argv);
+		perror("couldn't run");
+		exit(127);
+	}
+
+	// parent process
+	if ((pid == waitpid(pid, &status, 0)) < 0)
+		perror("waitpid error");
+
 	// In the parent, you should:
 	//    1. Close some file descriptors.  Hint: Consider the write end
 	//       of this command's pipe, and one other fd as well.
@@ -173,7 +188,7 @@ command_line_exec(command_t *cmdlist)
 		// If an error occurs in command_exec, feel free to abort().
 		
 		/* Your code here. */
-
+		command_exec(cmdlist, &pipefd);
 		cmdlist = cmdlist->next;
 	}
 

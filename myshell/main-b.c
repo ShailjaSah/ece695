@@ -1,4 +1,4 @@
-/* 
+/*
  * Skeleton code for Lab 1 - Shell processing
  * This file contains skeleton code for executing commands parsed in cmdline.c.
   * Acknowledgement: derived from UCLA CS111
@@ -30,7 +30,7 @@
  */
 
 
-/* 
+/*
  * Main function for shell.
  */
 int
