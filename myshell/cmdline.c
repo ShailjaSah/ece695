@@ -80,7 +80,7 @@ parse_gettoken(parsestate_t *parsestate, token_t *token)
 	// EXERCISE: Skip initial whitespace in 'str'.
 
 	/* Your code here. */
-	while (*str == ' ')
+	while (isspace(*str))
 		str++;
 	
 	// Report TOK_END at the end of the command string.
