@@ -69,14 +69,12 @@ main(int argc, char *argv[])
 		if (!cmdlist) {
 			printf("Syntax error\n");
 			continue;
-		} else {
-			command_print(cmdlist, 0);
 		}
 
 		// print the command list
 		if (!quiet) {
 			// TODO: invoke some function(s) in cmdline.c for printing out the command for debugging.
-
+			command_print(cmdlist, 0);
 			// why do we need to do this?
 			fflush(stdout);
 		}
