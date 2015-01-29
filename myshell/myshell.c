@@ -117,8 +117,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	}
 
 	// parent process
-	if ((pid == waitpid(pid, &status, 0)) < 0)
-		perror("waitpid error");
+
 
 	// In the parent, you should:
 	//    1. Close some file descriptors.  Hint: Consider the write end
@@ -177,6 +176,7 @@ command_line_exec(command_t *cmdlist)
 {
 	int cmd_status = 0;	    // status of last command executed
 	int pipefd = STDIN_FILENO;  // read end of last pipe
+	pid_t pid = -1;
 	
 	while (cmdlist) {
 		int wp_status;	    // Hint: use for waitpid's status argument!
@@ -188,7 +188,11 @@ command_line_exec(command_t *cmdlist)
 		// If an error occurs in command_exec, feel free to abort().
 		
 		/* Your code here. */
-		command_exec(cmdlist, &pipefd);
+		pid = command_exec(cmdlist, &pipefd);
+
+		if (cmdlist->controlop != CMD_BACKGROUND && (pid == waitpid(pid, &cmd_status, 0)) < 0)
+			perror("waitpid error");
+
 		cmdlist = cmdlist->next;
 	}
 

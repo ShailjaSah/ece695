@@ -145,11 +145,11 @@ tokentype_t get_token_type(const char* token)
 		if (*(token++) == '>')
 			return TOK_2_GREATER_THAN;
 		else
-			return TOK_2_GREATER_THAN;
+			return TOK_NORMAL;
 	case ';':
 		return TOK_SEMICOLON;
 	case '&':
-		if (*(token++) == '&')
+		if (*(token+1) == '&')
 			return TOK_DOUBLEAMP;
 		else
 			return TOK_AMPERSAND;
@@ -372,9 +372,20 @@ command_line_parse(parsestate_t *parsestate, int in_parens)
 		// 'goto error'.  The ";" and "&" tokens may require special
 		// handling, since unlike other special tokens, they can end
 		// the command line.
-
+		parse_gettoken(parsestate, &token);
+		if (token.type == TOK_NORMAL)
+			printf("parse token error");
+		cmd->controlop = token.type;
 		/* Your code here */
-		goto done;
+
+		if (token.type == TOK_SEMICOLON || token.type == TOK_AMPERSAND ) {
+			parse_gettoken(parsestate, &token);
+			if (token.type != TOK_END)
+				parse_ungettoken(parsestate);
+		}
+		if (token.type == TOK_END )
+			goto done;
+
 	}
 
  done:
