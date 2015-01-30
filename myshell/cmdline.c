@@ -102,12 +102,22 @@ parse_gettoken(parsestate_t *parsestate, token_t *token)
 	// Change this code to handle quotes and terminate tokens at spaces.
 
 	i = 0;
-	while (*str != '\0' && !isspace(*str)) {
+	quote_state = QUOTE_OUT;
+
+	//while (*str != '\0' && !isspace(*str)) {
+	while (*str != '\0') {
 		if (i >= TOKENSIZE - 1)
 			// Token too long; this is an error
 			goto error;
+		while (*str == '"') {
+			quote_state = - quote_state;
+			str++;
+		}
 
-		token->buffer[i++] = *str++;
+		if ((quote_state == QUOTE_OUT) && isspace(*str))
+			break;
+		else
+			token->buffer[i++] = *str++;
 	}
 	token->buffer[i] = '\0';	// end the token string
 

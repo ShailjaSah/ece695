@@ -131,7 +131,7 @@ typedef enum {
 
 #define MAXTOKENS 512
 #define QUOTE_IN	1
-#define QUOTE_OUT	0
+#define QUOTE_OUT	-1
 #define PARENS_IN	1
 #define PARENS_OUT	0
 
