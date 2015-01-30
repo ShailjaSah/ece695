@@ -143,7 +143,6 @@ parse_gettoken(parsestate_t *parsestate, token_t *token)
 	token->type = TOK_ERROR;
 }
 
-// TODO: deal with quote
 tokentype_t get_token_type(const char* token)
 {
 	switch (*token) {
@@ -152,7 +151,7 @@ tokentype_t get_token_type(const char* token)
 	case '>':
 		return TOK_GREATER_THAN;
 	case '2':
-		if (*(token++) == '>')
+		if (*(token+1) == '>')
 			return TOK_2_GREATER_THAN;
 		else
 			return TOK_NORMAL;
@@ -164,7 +163,7 @@ tokentype_t get_token_type(const char* token)
 		else
 			return TOK_AMPERSAND;
 	case '|':
-		if (*(token++) == '|')
+		if (*(token+1) == '|')
 			return TOK_DOUBLEPIPE;
 		else
 			return TOK_PIPE;
@@ -311,6 +310,27 @@ command_parse(parsestate_t *parsestate)
 				cmd->argv[i] = strdup(token.buffer);
 				i++;
 			}
+			break;
+		case TOK_LESS_THAN:
+			//printf("input red\n");
+			parse_gettoken(parsestate, &token);
+			if (token.type != TOK_NORMAL)
+				goto error;
+			cmd->redirect_filename[0] = strdup(token.buffer);
+			break;
+		case TOK_GREATER_THAN:
+			//printf("output red\n");
+			parse_gettoken(parsestate, &token);
+			if (token.type != TOK_NORMAL)
+				goto error;
+			cmd->redirect_filename[1] = strdup(token.buffer);
+			break;
+		case TOK_2_GREATER_THAN:
+			//printf("stderr red\n");
+			parse_gettoken(parsestate, &token);
+			if (token.type != TOK_NORMAL)
+				goto error;
+			cmd->redirect_filename[2] = strdup(token.buffer);
 			break;
 		default:
 			parse_ungettoken(parsestate);

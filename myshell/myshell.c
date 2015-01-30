@@ -75,6 +75,9 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	// Return -1 if the pipe fails.
 	if (cmd->controlop == CMD_PIPE) {
 		/* Your code here. */
+		printf("PIPE\n");
+	} else{
+		*pass_pipefd = STDIN_FILENO;
 	}
 
 
@@ -111,6 +114,23 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	}
 	// child process
 	else if (pid == 0) {
+		int fd_in, fd_out, fd_err;
+		int fd_re[3], i;
+		for (i = 0 ; i < 3; i++) {
+			if (cmd->redirect_filename[i] != 0) {
+				if (i == 0)
+					fd_re[i] = open(cmd->redirect_filename[i], O_RDONLY);
+				else if (i > 0)
+					fd_re[i] = open(cmd->redirect_filename[i], O_RDWR | O_CREAT, 0666);
+
+				if (fd_re[i] < 0)
+					perror("open redirect file error");
+				dup2(fd_re[i], i);
+				close(fd_re[i]);
+			}
+		}
+
+		// execute the command
 		execvp(cmd->argv[0], cmd->argv);
 		perror("couldn't run");
 		exit(127);
