@@ -306,8 +306,11 @@ command_parse(parsestate_t *parsestate)
 
 		switch (token.type) {
 		case TOK_NORMAL:
-			cmd->argv[i] = strdup(token.buffer);
-			i++;
+			//printf("%s len: %d", token.buffer, strlen(token.buffer));
+			if (strlen(token.buffer) != 0) {
+				cmd->argv[i] = strdup(token.buffer);
+				i++;
+			}
 			break;
 		default:
 			parse_ungettoken(parsestate);
