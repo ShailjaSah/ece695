@@ -65,6 +65,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	pid_t pid = -1;		// process ID for child
 	int pipefd[2];		// file descriptors for this process's pipe
 	static const char *CMD_EXIT = "exit";
+	static const char *CMD_CD = "cd";
 
 	/* EXERCISE: Complete this function!
 	 * We've written some of the skeleton for you, but feel free to
@@ -73,6 +74,13 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	if (strcmp(cmd->argv[0], CMD_EXIT) == 0) {
 		printf("exit! good bye\n");
 		exit(0);
+	} else if (strcmp(cmd->argv[0], CMD_CD) == 0) {
+		if (0 == chdir(cmd->argv[1])) {
+			return 0;
+		} else {
+			perror("cd error");
+			return -1;
+		}
 	}
 	// Create a pipe, if this command is the left-hand side of a pipe.
 	// Return -1 if the pipe fails.
@@ -126,7 +134,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 				if (i == 0)
 					fd_re[i] = open(cmd->redirect_filename[i], O_RDONLY);
 				else if (i > 0)
-					fd_re[i] = open(cmd->redirect_filename[i], O_RDWR | O_CREAT, 0666);
+					fd_re[i] = open(cmd->redirect_filename[i], O_RDWR | O_CREAT | O_TRUNC, 0666);
 
 				if (fd_re[i] < 0)
 					perror("open redirect file error");
@@ -236,7 +244,7 @@ command_line_exec(command_t *cmdlist)
 				goto done;
 			break;
 		default:
-			perror("CMD type error");
+			perror("unknown CMD type ");
 			abort();
 		}
 
