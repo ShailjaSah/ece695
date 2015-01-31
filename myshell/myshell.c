@@ -64,13 +64,16 @@ command_exec(command_t *cmd, int *pass_pipefd)
 {
 	pid_t pid = -1;		// process ID for child
 	int pipefd[2];		// file descriptors for this process's pipe
-	int status;
+	static const char *CMD_EXIT = "exit";
 
 	/* EXERCISE: Complete this function!
 	 * We've written some of the skeleton for you, but feel free to
 	 * change it.
 	 */
-
+	if (strcmp(cmd->argv[0], CMD_EXIT) == 0) {
+		printf("exit! good bye\n");
+		exit(0);
+	}
 	// Create a pipe, if this command is the left-hand side of a pipe.
 	// Return -1 if the pipe fails.
 	if (cmd->controlop == CMD_PIPE) {
@@ -79,6 +82,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	} else{
 		*pass_pipefd = STDIN_FILENO;
 	}
+
 
 
 	// Fork the child and execute the command in that child.
@@ -111,10 +115,11 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	//
 	if ((pid = fork()) < 0) {
 		perror("fork error");
+		return pid;
 	}
 	// child process
 	else if (pid == 0) {
-		int fd_in, fd_out, fd_err;
+		// configure input/output redirection
 		int fd_re[3], i;
 		for (i = 0 ; i < 3; i++) {
 			if (cmd->redirect_filename[i] != 0) {
@@ -208,10 +213,32 @@ command_line_exec(command_t *cmdlist)
 		// If an error occurs in command_exec, feel free to abort().
 		
 		/* Your code here. */
-		pid = command_exec(cmdlist, &pipefd);
-
-		if (cmdlist->controlop != CMD_BACKGROUND && (pid == waitpid(pid, &cmd_status, 0)) < 0)
-			perror("waitpid error");
+		switch (cmdlist->controlop) {
+		case CMD_END:
+		case CMD_SEMICOLON:
+			pid = command_exec(cmdlist, &pipefd);
+			pid = waitpid(pid, &cmd_status, 0);
+			break;
+		case CMD_BACKGROUND:
+			pid = command_exec(cmdlist, &pipefd);
+			cmd_status = 0;
+			break;
+		case CMD_AND:
+			pid = command_exec(cmdlist, &pipefd);
+			pid = waitpid(pid, &cmd_status, 0);
+			if (cmd_status)
+				goto done;
+			break;
+		case CMD_OR:
+			pid = command_exec(cmdlist, &pipefd);
+			pid = waitpid(pid, &cmd_status, 0);
+			if (!cmd_status)
+				goto done;
+			break;
+		default:
+			perror("CMD type error");
+			abort();
+		}
 
 		cmdlist = cmdlist->next;
 	}
