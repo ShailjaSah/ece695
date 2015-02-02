@@ -220,26 +220,30 @@ command_line_exec(command_t *cmdlist)
 		// TODO: Fill out this function!
 		// If an error occurs in command_exec, feel free to abort().
 		
+		if (cmdlist->subshell != 0) {
+			cmd_status = command_line_exec(cmdlist->subshell);
+			//cmdlist = cmdlist->next;
+			//goto done;
+		} else {
+			pid = command_exec(cmdlist, &pipefd);
+			if (cmdlist->controlop != CMD_BACKGROUND && cmdlist->controlop != CMD_PIPE) {
+				pid = waitpid(pid, &cmd_status, 0);
+			}
+		}
+
 		/* Your code here. */
 		switch (cmdlist->controlop) {
 		case CMD_END:
 		case CMD_SEMICOLON:
-			pid = command_exec(cmdlist, &pipefd);
-			pid = waitpid(pid, &cmd_status, 0);
 			break;
 		case CMD_BACKGROUND:
-			pid = command_exec(cmdlist, &pipefd);
 			cmd_status = 0;
 			break;
 		case CMD_AND:
-			pid = command_exec(cmdlist, &pipefd);
-			pid = waitpid(pid, &cmd_status, 0);
 			if (cmd_status)
 				goto done;
 			break;
 		case CMD_OR:
-			pid = command_exec(cmdlist, &pipefd);
-			pid = waitpid(pid, &cmd_status, 0);
 			if (!cmd_status)
 				goto done;
 			break;

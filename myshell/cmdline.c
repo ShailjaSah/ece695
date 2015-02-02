@@ -103,6 +103,7 @@ parse_gettoken(parsestate_t *parsestate, token_t *token)
 
 	i = 0;
 	quote_state = QUOTE_OUT;
+	any_quotes = QUOTE_OUT;
 
 	//while (*str != '\0' && !isspace(*str)) {
 	while (*str != '\0') {
@@ -111,6 +112,7 @@ parse_gettoken(parsestate_t *parsestate, token_t *token)
 			goto error;
 		while (*str == '"') {
 			quote_state = - quote_state;
+			any_quotes = QUOTE_IN;
 			str++;
 		}
 
@@ -135,7 +137,10 @@ parse_gettoken(parsestate_t *parsestate, token_t *token)
 	/* Your code here. */
 	
 	//token->type = TOK_NORMAL;
-	token->type = get_token_type(token->buffer);
+	if (any_quotes == QUOTE_IN)
+		token->type = TOK_NORMAL;
+	else
+		token->type = get_token_type(token->buffer);
 	return;
 
  error:
@@ -300,6 +305,9 @@ command_parse(parsestate_t *parsestate)
 		// command_line_parse(). The command_t structure has a slot
 		// you can use for parens; figure out how to use it!
 
+		if (i > MAXTOKENS)
+			goto error;
+
 		token_t token;
 		parse_gettoken(parsestate, &token);
 
@@ -332,6 +340,11 @@ command_parse(parsestate_t *parsestate)
 				goto error;
 			cmd->redirect_filename[2] = strdup(token.buffer);
 			break;
+		case TOK_OPEN_PAREN:
+			cmd->subshell = command_line_parse(parsestate, PARENS_IN);
+			goto done;
+			break;
+		case TOK_CLOSE_PAREN:
 		default:
 			parse_ungettoken(parsestate);
 			goto done;
@@ -344,7 +357,7 @@ command_parse(parsestate_t *parsestate)
 
 	// EXERCISE: Make sure you return the right return value!
 
-	if (i == 0) {
+	if (i == 0 && cmd->subshell == NULL) {
 		/* Empty command */
 		command_free(cmd);
 		return NULL;
@@ -416,14 +429,27 @@ command_line_parse(parsestate_t *parsestate, int in_parens)
 			if (token.type != TOK_END)
 				parse_ungettoken(parsestate);
 		}
-		if (token.type == TOK_END )
+		if (token.type == TOK_CLOSE_PAREN) {
+			if (in_parens == PARENS_IN) {
+				cmd->controlop = CMD_END;
+				goto done;
+			} else
+				goto error;
+		}
+		if (token.type == TOK_END)
 			goto done;
 
 	}
 
  done:
 	// EXERCISE: Check that the command line ends properly.
-
+/* 	 if (in_parens == PARENS_OUT) {
+ 		 if (strlen(parsestate->position) != 0) {
+ 			 printf("strlen %d\n", strlen(parsestate->position));
+ 			 perror("line end error");
+ 			 exit(1);
+ 		 }
+ 	 }*/
 	/* Your code here */
 
 	return head;

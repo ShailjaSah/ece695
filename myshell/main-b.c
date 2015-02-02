@@ -64,7 +64,7 @@ main(int argc, char *argv[])
 
 		// TODO: invoke some function(s) in cmdline.c for parsing the read string.
 		parse_init(&parsestate, input);
-		cmdlist = command_line_parse(&parsestate, 0);
+		cmdlist = command_line_parse(&parsestate, PARENS_OUT);
 
 		if (!cmdlist) {
 			printf("Syntax error\n");
