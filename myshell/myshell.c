@@ -71,17 +71,6 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	 * We've written some of the skeleton for you, but feel free to
 	 * change it.
 	 */
-	if (strcmp(cmd->argv[0], CMD_EXIT) == 0) {
-		printf("exit! good bye\n");
-		exit(0);
-	} else if (strcmp(cmd->argv[0], CMD_CD) == 0) {
-		if (0 == chdir(cmd->argv[1])) {
-			return 0;
-		} else {
-			perror("cd error");
-			return -1;
-		}
-	}
 	// Create a pipe, if this command is the left-hand side of a pipe.
 	// Return -1 if the pipe fails.
 	if (cmd->controlop == CMD_PIPE) {
@@ -90,8 +79,6 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	} else{
 		*pass_pipefd = STDIN_FILENO;
 	}
-
-
 
 	// Fork the child and execute the command in that child.
 	// You will handle all redirections by manipulating file descriptors.
@@ -144,14 +131,19 @@ command_exec(command_t *cmd, int *pass_pipefd)
 		}
 
 		// execute the command
-		execvp(cmd->argv[0], cmd->argv);
-		perror("couldn't run");
-		exit(127);
+		if (cmd->subshell != NULL) {
+			//printf("child run subshell\n");
+			command_line_exec(cmd->subshell);
+		} else if (cmd->argv[0] != NULL) {
+			//printf("child run %s\n", cmd->argv[0]);
+			execvp(cmd->argv[0], cmd->argv);
+		} else {
+			printf("child empty cmmand\n");
+			exit(0);
+		}
 	}
 
 	// parent process
-
-
 	// In the parent, you should:
 	//    1. Close some file descriptors.  Hint: Consider the write end
 	//       of this command's pipe, and one other fd as well.
@@ -173,6 +165,19 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	//
 
 	/* Your code here. */
+	if (cmd->argv[0] != NULL) {
+		if (strcmp(cmd->argv[0], CMD_EXIT) == 0) {
+			printf("exit! good bye\n");
+			exit(0);
+		} else if (strcmp(cmd->argv[0], CMD_CD) == 0) {
+			if (0 == chdir(cmd->argv[1])) {
+				return 0;
+			} else {
+				perror("cd error");
+				return -1;
+			}
+		}
+	}
 
 	// return the child process ID
 	return pid;
@@ -220,18 +225,12 @@ command_line_exec(command_t *cmdlist)
 		// TODO: Fill out this function!
 		// If an error occurs in command_exec, feel free to abort().
 		
-		if (cmdlist->subshell != 0) {
-			cmd_status = command_line_exec(cmdlist->subshell);
-			//cmdlist = cmdlist->next;
-			//goto done;
-		} else {
-			pid = command_exec(cmdlist, &pipefd);
-			if (cmdlist->controlop != CMD_BACKGROUND && cmdlist->controlop != CMD_PIPE) {
-				pid = waitpid(pid, &cmd_status, 0);
-			}
+		pid = command_exec(cmdlist, &pipefd);
+		if (cmdlist->controlop != CMD_BACKGROUND
+				&& cmdlist->controlop != CMD_PIPE) {
+			pid = waitpid(pid, &cmd_status, 0);
 		}
 
-		/* Your code here. */
 		switch (cmdlist->controlop) {
 		case CMD_END:
 		case CMD_SEMICOLON:
