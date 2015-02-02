@@ -448,6 +448,8 @@ command_line_parse(parsestate_t *parsestate, int in_parens)
 			parse_gettoken(parsestate, &token);
 			if (token.type != TOK_END)
 				parse_ungettoken(parsestate);
+			else
+				goto done;
 			break;
 		case TOK_CLOSE_PAREN:
 			if (in_parens == PARENS_IN) {

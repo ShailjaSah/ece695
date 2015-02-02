@@ -124,11 +124,15 @@ command_exec(command_t *cmd, int *pass_pipefd)
 			// close the read end
 			close(pipefd[0]);
 			// set stdout to pipe write end
-			if (dup2(pipefd[1], STDOUT_FILENO) < 0)
+			if (dup2(pipefd[1], STDOUT_FILENO) < 0) {
 				perror("dup2 stdout error in child\n");
-			close(pipefd[1]);
-			if (dup2(*pass_pipefd, STDIN_FILENO) < 0)
+				close(pipefd[1]);
+			}
+			//close(pipefd[1]);
+			if (dup2(*pass_pipefd, STDIN_FILENO) < 0) {
 				perror("dup2 stdin error in child\n");
+				close(*pass_pipefd);
+			}
 
 		}
 		// configure input/output redirection
@@ -151,11 +155,14 @@ command_exec(command_t *cmd, int *pass_pipefd)
 		// execute the command
 		if (cmd->subshell != NULL) {
 			//printf("child run subshell\n");
-			command_line_exec(cmd->subshell);
+			exit(command_line_exec(cmd->subshell));
 		} else if (cmd->argv[0] != NULL) {
 			//printf("child run %s\n", cmd->argv[0]);
-			if (execvp(cmd->argv[0], cmd->argv) < 0)
+			/*if (execvp(cmd->argv[0], cmd->argv) < 0) {
+				perror("child cd\n");
 				exit(1);
+			}*/
+			exit(execvp(cmd->argv[0], cmd->argv));
 		} else {
 			printf("child empty cmmand\n");
 			exit(0);
@@ -201,11 +208,12 @@ command_exec(command_t *cmd, int *pass_pipefd)
 			// close the write end
 			close(pipefd[1]);
 
-			/*if (dup2(pipefd[0], STDIN_FILENO) < 0)
-				perror("dup2 stdin error parent\n");*/
-			n = read(pipefd[0], line, 512);
+			if (dup2(pipefd[0], STDIN_FILENO) < 0)
+				perror("dup2 stdin error parent\n");
+			*pass_pipefd = dup(pipefd[0]);
+			//n = read(pipefd[0], line, 512);
 			//printf("p read %s\n", line);
-			write(STDOUT_FILENO, line, n);
+			//write(*pass_pipefd, line, n);
 			//close read end
 			//close(pipefd[0]);
 		}
@@ -247,7 +255,12 @@ command_line_exec(command_t *cmdlist)
 	int cmd_status = 0;	    // status of last command executed
 	int z_status = 0;
 	int pipefd = STDIN_FILENO;  // read end of last pipe
+	int ret;
 	pid_t pid = -1;
+	pid_t z_pid[512], i, j;
+
+	i = 0;
+	memset(z_pid, 0, 512);
 	
 	while (cmdlist) {
 		int wp_status;	    // Hint: use for waitpid's status argument!
@@ -262,10 +275,15 @@ command_line_exec(command_t *cmdlist)
 		if (cmdlist->controlop != CMD_BACKGROUND
 				&& cmdlist->controlop != CMD_PIPE) {
 			pid = waitpid(pid, &cmd_status, 0);
+			ret = WIFEXITED(cmd_status);
+			cmd_status = WEXITSTATUS(cmd_status);
+		} else {
+			z_pid[i++] = pid;
 		}
 
 		switch (cmdlist->controlop) {
 		case CMD_END:
+			//goto done;
 		case CMD_SEMICOLON:
 			break;
 		case CMD_BACKGROUND:
@@ -273,11 +291,16 @@ command_line_exec(command_t *cmdlist)
 			cmd_status = 0;
 			break;
 		case CMD_AND:
-			if (cmd_status)
+			printf("child status %d", cmd_status);
+			if (ret && cmd_status != 0 && cmd_status != 255) {
+				printf("child status %d, AND false\n", cmd_status);
 				goto done;
+			}
+			else
+				printf("child status %d, AND true\n", cmd_status);
 			break;
 		case CMD_OR:
-			if (!cmd_status)
+			if (ret && cmd_status == 0)
 				goto done;
 			break;
 		default:
@@ -289,8 +312,10 @@ command_line_exec(command_t *cmdlist)
 	}
 
 done:
-	/*while (waitpid(-1, &z_status, WNOHANG) > 0)
-		;*/
+	j = 0;
+	while (z_pid[j] != 0 ) {
+		waitpid(z_pid[j++], &z_status, 0);
+	}
 	return cmd_status;
 }
 
