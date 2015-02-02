@@ -66,6 +66,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	int pipefd[2];		// file descriptors for this process's pipe
 	static const char *CMD_EXIT = "exit";
 	static const char *CMD_CD = "cd";
+	char line[512];
 
 	/* EXERCISE: Complete this function!
 	 * We've written some of the skeleton for you, but feel free to
@@ -75,9 +76,11 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	// Return -1 if the pipe fails.
 	if (cmd->controlop == CMD_PIPE) {
 		/* Your code here. */
-		printf("PIPE\n");
-	} else{
-		*pass_pipefd = STDIN_FILENO;
+		if (pipe(pipefd) < 0) {
+			perror("pipe error\n");
+			return -1;
+		}
+		//printf("PIPE\n");
 	}
 
 	// Fork the child and execute the command in that child.
@@ -114,14 +117,28 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	}
 	// child process
 	else if (pid == 0) {
-		// configure input/output redirection
+
 		int fd_re[3], i;
-		for (i = 0 ; i < 3; i++) {
+
+		if (cmd->controlop == CMD_PIPE) {
+			// close the read end
+			close(pipefd[0]);
+			// set stdout to pipe write end
+			if (dup2(pipefd[1], STDOUT_FILENO) < 0)
+				perror("dup2 stdout error in child\n");
+			close(pipefd[1]);
+			if (dup2(*pass_pipefd, STDIN_FILENO) < 0)
+				perror("dup2 stdin error in child\n");
+
+		}
+		// configure input/output redirection
+		for (i = 0; i < 3; i++) {
 			if (cmd->redirect_filename[i] != 0) {
 				if (i == 0)
 					fd_re[i] = open(cmd->redirect_filename[i], O_RDONLY);
 				else if (i > 0)
-					fd_re[i] = open(cmd->redirect_filename[i], O_RDWR | O_CREAT | O_TRUNC, 0666);
+					fd_re[i] = open(cmd->redirect_filename[i],
+							O_RDWR | O_CREAT | O_TRUNC, 0666);
 
 				if (fd_re[i] < 0)
 					perror("open redirect file error");
@@ -130,13 +147,15 @@ command_exec(command_t *cmd, int *pass_pipefd)
 			}
 		}
 
+
 		// execute the command
 		if (cmd->subshell != NULL) {
 			//printf("child run subshell\n");
 			command_line_exec(cmd->subshell);
 		} else if (cmd->argv[0] != NULL) {
 			//printf("child run %s\n", cmd->argv[0]);
-			execvp(cmd->argv[0], cmd->argv);
+			if (execvp(cmd->argv[0], cmd->argv) < 0)
+				exit(1);
 		} else {
 			printf("child empty cmmand\n");
 			exit(0);
@@ -167,15 +186,28 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	/* Your code here. */
 	if (cmd->argv[0] != NULL) {
 		if (strcmp(cmd->argv[0], CMD_EXIT) == 0) {
-			printf("exit! good bye\n");
+			//printf("exit! good bye\n");
 			exit(0);
 		} else if (strcmp(cmd->argv[0], CMD_CD) == 0) {
-			if (0 == chdir(cmd->argv[1])) {
+/*			if (0 == chdir(cmd->argv[1])) {
 				return 0;
 			} else {
 				perror("cd error");
 				return -1;
-			}
+			}*/
+			chdir(cmd->argv[1]);
+		} else if (cmd->controlop == CMD_PIPE) {
+			int n;
+			// close the write end
+			close(pipefd[1]);
+
+			/*if (dup2(pipefd[0], STDIN_FILENO) < 0)
+				perror("dup2 stdin error parent\n");*/
+			n = read(pipefd[0], line, 512);
+			//printf("p read %s\n", line);
+			write(STDOUT_FILENO, line, n);
+			//close read end
+			//close(pipefd[0]);
 		}
 	}
 
@@ -213,6 +245,7 @@ int
 command_line_exec(command_t *cmdlist)
 {
 	int cmd_status = 0;	    // status of last command executed
+	int z_status = 0;
 	int pipefd = STDIN_FILENO;  // read end of last pipe
 	pid_t pid = -1;
 	
@@ -236,6 +269,7 @@ command_line_exec(command_t *cmdlist)
 		case CMD_SEMICOLON:
 			break;
 		case CMD_BACKGROUND:
+		case CMD_PIPE:
 			cmd_status = 0;
 			break;
 		case CMD_AND:
@@ -255,6 +289,8 @@ command_line_exec(command_t *cmdlist)
 	}
 
 done:
+	/*while (waitpid(-1, &z_status, WNOHANG) > 0)
+		;*/
 	return cmd_status;
 }
 

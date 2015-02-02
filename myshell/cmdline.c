@@ -314,6 +314,10 @@ command_parse(parsestate_t *parsestate)
 		switch (token.type) {
 		case TOK_NORMAL:
 			//printf("%s len: %d", token.buffer, strlen(token.buffer));
+			if (cmd->subshell != NULL) {
+				parse_ungettoken(parsestate);
+				goto done;
+			}
 			if (strlen(token.buffer) != 0) {
 				cmd->argv[i] = strdup(token.buffer);
 				i++;
@@ -325,6 +329,13 @@ command_parse(parsestate_t *parsestate)
 			if (token.type != TOK_NORMAL)
 				goto error;
 			cmd->redirect_filename[0] = strdup(token.buffer);
+			if (cmd->subshell!= NULL) {
+				command_t *subcmd = cmd->subshell;
+				while (subcmd) {
+					subcmd->redirect_filename[0] = strdup(token.buffer);
+					subcmd = subcmd->next;
+				}
+			}
 			break;
 		case TOK_GREATER_THAN:
 			//printf("output red\n");
@@ -332,6 +343,13 @@ command_parse(parsestate_t *parsestate)
 			if (token.type != TOK_NORMAL)
 				goto error;
 			cmd->redirect_filename[1] = strdup(token.buffer);
+			if (cmd->subshell != NULL) {
+				command_t *subcmd = cmd->subshell;
+				while (subcmd) {
+					subcmd->redirect_filename[1] = strdup(token.buffer);
+					subcmd = subcmd->next;
+				}
+			}
 			break;
 		case TOK_2_GREATER_THAN:
 			//printf("stderr red\n");
@@ -342,7 +360,7 @@ command_parse(parsestate_t *parsestate)
 			break;
 		case TOK_OPEN_PAREN:
 			cmd->subshell = command_line_parse(parsestate, PARENS_IN);
-			goto done;
+			//goto done;
 			break;
 		case TOK_CLOSE_PAREN:
 		default:
@@ -424,21 +442,25 @@ command_line_parse(parsestate_t *parsestate, int in_parens)
 		cmd->controlop = token.type;
 		/* Your code here */
 
-		if (token.type == TOK_SEMICOLON || token.type == TOK_AMPERSAND ) {
+		switch (token.type) {
+		case TOK_SEMICOLON:
+		case TOK_AMPERSAND:
 			parse_gettoken(parsestate, &token);
 			if (token.type != TOK_END)
 				parse_ungettoken(parsestate);
-		}
-		if (token.type == TOK_CLOSE_PAREN) {
+			break;
+		case TOK_CLOSE_PAREN:
 			if (in_parens == PARENS_IN) {
 				cmd->controlop = CMD_END;
 				goto done;
 			} else
 				goto error;
-		}
-		if (token.type == TOK_END)
+			break;
+		case TOK_END:
 			goto done;
-
+		default:
+			;
+		}
 	}
 
  done:
