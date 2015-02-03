@@ -307,13 +307,13 @@ command_line_exec(command_t *cmdlist)
 			cmd_status = 0;
 			break;
 		case CMD_AND:
-			printf("child status %d", cmd_status);
+			//printf("child status %d", cmd_status);
 			if (ret && cmd_status != 0 && cmd_status != 255) {
-				printf("child status %d, AND false\n", cmd_status);
+				//printf("child status %d, AND false\n", cmd_status);
 				goto done;
 			}
-			else
-				printf("child status %d, AND true\n", cmd_status);
+			//else
+				//printf("child status %d, AND true\n", cmd_status);
 			break;
 		case CMD_OR:
 			if (ret && cmd_status == 0)
