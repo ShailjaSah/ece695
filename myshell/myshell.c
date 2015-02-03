@@ -17,6 +17,9 @@
 #include "cmdline.h"
 #include "myshell.h"
 
+
+pid_t z_pid[512];
+int z_init = 0;
 /** 
  * Reports the creation of a background job in the following format:
  *  [job_id] process_id
@@ -66,6 +69,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 	int pipefd[2];		// file descriptors for this process's pipe
 	static const char *CMD_EXIT = "exit";
 	static const char *CMD_CD = "cd";
+	static const char *CMD_JOBS = "jobs";
 	char line[512];
 
 	/* EXERCISE: Complete this function!
@@ -164,7 +168,7 @@ command_exec(command_t *cmd, int *pass_pipefd)
 			}*/
 			exit(execvp(cmd->argv[0], cmd->argv));
 		} else {
-			printf("child empty cmmand\n");
+			//printf("child empty cmmand\n");
 			exit(0);
 		}
 	}
@@ -203,6 +207,16 @@ command_exec(command_t *cmd, int *pass_pipefd)
 				return -1;
 			}*/
 			chdir(cmd->argv[1]);
+		} else if (strcmp(cmd->argv[0], CMD_JOBS) == 0) {
+			int k = 0, z_status;
+			while (z_pid[k] != 0) {
+
+				if (waitpid(z_pid[k], &z_status, WNOHANG) == 0)
+					report_background_job(k, z_pid[k]);
+
+				k++;
+			}
+
 		} else if (cmd->controlop == CMD_PIPE) {
 			int n;
 			// close the write end
@@ -257,10 +271,14 @@ command_line_exec(command_t *cmdlist)
 	int pipefd = STDIN_FILENO;  // read end of last pipe
 	int ret;
 	pid_t pid = -1;
-	pid_t z_pid[512], i, j;
-
+	//pid_t z_pid[512], i, j;
+	int i, j;
 	i = 0;
-	memset(z_pid, 0, 512);
+	if (z_init == 0) {
+		memset(z_pid, 0, 512);
+		z_init = 1;
+	}
+
 	
 	while (cmdlist) {
 		int wp_status;	    // Hint: use for waitpid's status argument!
@@ -314,7 +332,7 @@ command_line_exec(command_t *cmdlist)
 done:
 	j = 0;
 	while (z_pid[j] != 0 ) {
-		waitpid(z_pid[j++], &z_status, 0);
+		waitpid(z_pid[j++], &z_status, WNOHANG);
 	}
 	return cmd_status;
 }

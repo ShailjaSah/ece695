@@ -329,28 +329,14 @@ command_parse(parsestate_t *parsestate)
 			if (token.type != TOK_NORMAL)
 				goto error;
 			cmd->redirect_filename[0] = strdup(token.buffer);
-			if (cmd->subshell!= NULL) {
-				command_t *subcmd = cmd->subshell;
-				while (subcmd) {
-					subcmd->redirect_filename[0] = strdup(token.buffer);
-					subcmd = subcmd->next;
-				}
-			}
-			break;
+						break;
 		case TOK_GREATER_THAN:
 			//printf("output red\n");
 			parse_gettoken(parsestate, &token);
 			if (token.type != TOK_NORMAL)
 				goto error;
 			cmd->redirect_filename[1] = strdup(token.buffer);
-			if (cmd->subshell != NULL) {
-				command_t *subcmd = cmd->subshell;
-				while (subcmd) {
-					subcmd->redirect_filename[1] = strdup(token.buffer);
-					subcmd = subcmd->next;
-				}
-			}
-			break;
+						break;
 		case TOK_2_GREATER_THAN:
 			//printf("stderr red\n");
 			parse_gettoken(parsestate, &token);
