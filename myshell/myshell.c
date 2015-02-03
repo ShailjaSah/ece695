@@ -210,10 +210,8 @@ command_exec(command_t *cmd, int *pass_pipefd)
 		} else if (strcmp(cmd->argv[0], CMD_JOBS) == 0) {
 			int k = 0, z_status;
 			while (z_pid[k] != 0) {
-
 				if (waitpid(z_pid[k], &z_status, WNOHANG) == 0)
-					report_background_job(k, z_pid[k]);
-
+					report_background_job(k+1, z_pid[k]);
 				k++;
 			}
 
