@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 
 #include <libgen.h>
@@ -24,12 +25,23 @@
 using namespace std;
 
 
+void handle_child(int sig)
+{
+	pid_t pid;
+	int stat;
+	while ((pid = waitpid(-1, &stat, WNOHANG)) > 0) {
+		cout << pid << "end" << endl;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
 		cout << "usage: " << basename(argv[0]) << " port" << endl;
 		exit(1);
 	}
+
+	signal(SIGCHLD, handle_child);
 
 	int port = atoi(argv[1]);
 	int server_sock, client_fd;
