@@ -21,6 +21,7 @@
 #include <iostream>
 #include <cassert>
 
+#include "HttpHandler.hpp"
 
 using namespace std;
 
@@ -33,6 +34,7 @@ void handle_child(int sig)
 		cout << pid << "end" << endl;
 	}
 }
+
 
 int main(int argc, char **argv)
 {
@@ -75,6 +77,8 @@ int main(int argc, char **argv)
 			if (child == 0) {
 				close(server_sock);
 				cout << "new client from :" << inet_ntoa(client_addr.sin_addr) << endl;
+				HttpHandler httpHandler(client_fd);
+				httpHandler.run();
 				exit(0);
 			} else if (child > 0) {
 				cout << "new child: " << child << endl;
