@@ -30,6 +30,7 @@ void HttpHandler::run()
 			break;
 		} else if ( data_read == 0) {
 			cout << "read finish, client closed connection" << endl;
+
 			return;
 		} else {
 			cout << "got " << data_read << "data" << endl;
@@ -39,9 +40,13 @@ void HttpHandler::run()
 			if (req.getMethod() == GET) {
 				HttpResponse resp;
 				char *data = resp.to_rawdata();
+				cout << "Response is: " << data << endl;
 				send(cli_sock, data, strlen(data), 0);
+				cout << "done sending" << endl;
 			}
 			memset(buf, '\0', BUF_SIZE);
+			shutdown(cli_sock,2);
+			cout << "memory cleared " << endl;
 		}
 	}
 

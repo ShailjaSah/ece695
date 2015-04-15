@@ -7,10 +7,15 @@
 
 #include "HttpResponse.hpp"
 #include <cstring>
+#include <sys/socket.h>
+#include <iostream>
+
+using namespace std;
 
 char * HttpResponse::to_rawdata()
 {
-	strcpy(resp, OK200);
+	strcpy(resp, "OK 200");
+	cout << "Response copied to string " << endl;
 	return resp;
 }
 
