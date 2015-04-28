@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <iostream>
 #include <cstring>
+#include <unistd.h>
 
 using namespace std;
 
@@ -45,7 +46,8 @@ void HttpHandler::run()
 				cout << "done sending" << endl;
 			}
 			memset(buf, '\0', BUF_SIZE);
-			shutdown(cli_sock,2);
+			//shutdown(cli_sock,2);
+			close(cli_sock);
 			cout << "memory cleared " << endl;
 		}
 	}
