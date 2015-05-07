@@ -8,11 +8,16 @@
 #ifndef SOCKET_HPP_
 #define SOCKET_HPP_
 
+#include <sys/socket.h>
+
 class Socket {
 
-	struct sockaddr_in address;
+	int fd;
 
 public:
+	Socket() {
+		fd = socket(PF_INET, SOCK_STREAM, 0);
+	}
 	void setNonBlocking();
 };
 

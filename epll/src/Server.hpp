@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <sys/epoll.h>
+#include <cassert>
 
 
 class Server {
@@ -17,12 +18,13 @@ private:
 	char *ip;
 	int port;
 
-	epoll
-
 	const int MAX_EPOLL_EVENT = 1024;
+	epoll_event events[MAX_EPOLL_EVENT];
+	int epollfd;
 
 	void epoll_init() {
-
+		epollfd = epoll_create(5);
+		assert( epollfd != -1);
 	}
 
 
@@ -37,7 +39,10 @@ public:
 	}
 
 	void run() {
-
+		int ret = 0;
+		while (1) {
+			//ret = epoll_wait
+		}
 	}
 };
 
